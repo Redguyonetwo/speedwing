@@ -43,7 +43,7 @@ export class Player {
 
     rotate(angle) {
         for (let v of this.vertices) {
-            Vector.rotate(v, angle)
+            Vector.rotate(v, angle, this.pos)
         }
     }
 } 

@@ -3,6 +3,8 @@ class VectorLib {
         return {x, y}
     }
 
+    zero = {x: 0, y: 0}
+
     add(v1, v2) {
         v1.x += v2.x;
         v1.y += v2.y;
@@ -63,25 +65,36 @@ class VectorLib {
         return {x: -v.y * scale, y: v.x * scale}
     }
 
-    rotate(v, angle) {
+    rotate(v, angle, centre = this.zero) {
         const cos = Math.cos(angle);
         const sin = Math.sin(angle);
 
-        const x = v.x * cos - v.y * sin;
-        const y = v.y * cos + v.x * sin;
+        const localV = this.subtract2(v, centre)
 
-        v.x = x;
-        v.y = y;
+        const x = localV.x * cos - localV.y * sin;
+        const y = localV.y * cos + localV.x * sin;
+
+        v.x = x + centre.x;
+        v.y = y + centre.y;
     }
 
-    rotate2(v, angle) {
+    rotate2(v, angle, centre = this.zero) {
         const cos = Math.cos(angle);
         const sin = Math.sin(angle);
 
         const x = v.x * cos - v.y * sin;
         const y = v.y * cos + v.x * sin;
 
-        return {x, y}
+        return {x: x + centre.x, y: y + centre.y}
+    }
+
+    copy(v1, v2) {
+        v1.x = v2.x;
+        v1.y = v2.y;
+    }
+
+    clone(v) {
+        return {x: v.x, y: v.y}
     }
 }
 

@@ -1,5 +1,6 @@
 import { Player } from "./player.js";
 import { Vector } from "./vector.js";
+import { Input } from "./input.js";
 
 const canvas = document.getElementById('canvas')
 
@@ -20,10 +21,19 @@ console.log(Vector)
 
 const player = new Player({x: 500, y: 500}, 50)
 
+function clear() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+}
+
+function render() {
+    clear()
+    player.render(ctx)
+}
+
 function main() {
     requestAnimationFrame(main)
     player.rotate(0.1)
-    player.render(ctx)
+    render()
 }
 
 requestAnimationFrame(main)
