@@ -49,7 +49,7 @@ class VectorLib {
     }
 
     unit(v) {
-        this.multiplyScalar(v, 1 / this.magnitude(v))
+        this.mult(v, 1 / this.magnitude(v))
     }
 
     unit2(v) {
@@ -95,6 +95,10 @@ class VectorLib {
 
     clone(v) {
         return {x: v.x, y: v.y}
+    }
+
+    setMagnitude(v, mag) {
+        this.mult(v, mag / this.magnitude(v))
     }
 }
 

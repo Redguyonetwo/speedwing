@@ -9,9 +9,17 @@ class InputLib {
 
     mouse = {x: 0, y: 0, down: [false, false, false]}
 
+    onKeyDownFuncs = []
+
     addListeners() {
         window.onkeydown = (e) => {
-            this.keys[e.key.toLocaleLowerCase()] = true
+            const key = e.key.toLocaleLowerCase()
+            for (let {func, onFirstOnly} of this.onKeyDownFuncs) {
+                if (!onFirstOnly || !this.keys[key]) {
+                    func(key)
+                }
+            }
+            this.keys[key] = true
         }
         window.onkeyup = (e) => {
             this.keys[e.key.toLocaleLowerCase()] = false
@@ -25,6 +33,16 @@ class InputLib {
         window.onmousemove = (e) => {
             Vector.copy(this.mouse, e)
         }
+    }
+
+    onKeyDown(func, onFirstOnly = false) {
+        this.onKeyDownFuncs.push({func, onFirstOnly})
+    }
+
+    removeEvent(func) {
+        const index = this.onKeyDownFuncs.findIndex((f) => {f == func})
+
+        this.onKeyDownFuncs.splice(index, 1)
     }
 }
 
