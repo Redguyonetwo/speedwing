@@ -33,6 +33,14 @@ class InputLib {
         window.onmousemove = (e) => {
             Vector.copy(this.mouse, e)
         }
+
+        document.onvisibilitychange = (e) => {
+            if (document.hidden) {
+                this.mouse.down = [false, false, false]
+
+                this.keys = {}
+            }
+        }
     }
 
     onKeyDown(func, onFirstOnly = false) {

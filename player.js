@@ -1,5 +1,5 @@
 import { Vector } from "./vector.js"
-import { getIntersection } from "./math.js"
+import { getIntersection, pointToLineDistance, projectPointToLine } from "./math.js"
 
 export class Player {
     constructor(pos, size) {
@@ -18,6 +18,13 @@ export class Player {
             Vector.add(this.flameVerts.inner[i], pos)
             Vector.add(this.flameVerts.outer[i], pos)
         }
+
+        Vector.mult(this.min, size)
+        Vector.mult(this.max, size)
+        Vector.mult(this.diff, size)
+
+        Vector.add(this.min, pos)
+        Vector.add(this.max, pos)
     }
 
     rotation = Math.PI / 2
@@ -37,6 +44,10 @@ export class Player {
         {x: 0, y: 1}
     ]
 
+    min = {x: -0.85, y: -1}
+    max = {x: 0.85, y: 1}
+    diff = {x: 2 * 0.85, y: 2}
+
     flameVerts = {
         outer: [
             {x: -0.6, y: -0.8},
@@ -50,9 +61,8 @@ export class Player {
         ]
     }
 
-    render(ctx) {
+    render(ctx, isW = false) {
         this.renderFlame(ctx)
-
         ctx.strokeStyle = 'white'
         ctx.beginPath()
         ctx.moveTo(this.vertices[0].x, this.vertices[0].y)
@@ -65,8 +75,17 @@ export class Player {
         ctx.fill()
         ctx.strokeStyle = 'white'
         ctx.lineWidth = 5
-        console.log(ctx.strokeStyle)
         ctx.stroke()
+
+        ctx.strokeStyle = 'red'
+        ctx.strokeRect(this.min.x, this.min.y, this.diff.x, this.diff.y)
+    }
+
+    circle(ctx, x, y, r, colour = 'red') {
+        ctx.beginPath()
+        ctx.arc(x, y, r, 0, 2 * Math.PI)
+        ctx.fillStyle = colour
+        ctx.fill()
     }
 
     renderFlame(ctx) {
@@ -131,6 +150,9 @@ export class Player {
             Vector.add(this.flameVerts.inner[i], v)
             Vector.add(this.flameVerts.outer[i], v)
         }
+
+        Vector.add(this.min, v)
+        Vector.add(this.max, v)
     }
 
     goTo(v) {
@@ -158,10 +180,6 @@ export class Player {
         Vector.add(this.velocity, vec)
     }
 
-    addRotVelocity(n) {
-        this.rotVelocity += n
-    }
-
     rotate(angle) {
         for (let v of this.vertices) {
             Vector.rotate(v, angle, this.pos)
@@ -171,6 +189,16 @@ export class Player {
             Vector.rotate(this.flameVerts.inner[i], angle, this.pos)
             Vector.rotate(this.flameVerts.outer[i], angle, this.pos)
         }
+
+        const xs = this.vertices.map(v => v.x)
+        const ys = this.vertices.map(v => v.y)
+
+        this.min.x = Math.min(...xs)
+        this.min.y = Math.min(...ys)
+        this.max.x = Math.max(...xs)
+        this.max.y = Math.max(...ys)
+
+        this.diff = Vector.subtract2(this.max, this.min)
 
         this.rotation += angle
         this.dir = {x: Math.cos(this.rotation), y: Math.sin(this.rotation)}
@@ -195,8 +223,32 @@ export class Player {
         //if (Vector.magSquared(this.velocity) > this.maxSpeed * this.maxSpeed) Vector.setMagnitude(this.velocity, this.maxSpeed)
     }
 
-    checkFinished([v1, v2]) {
+    checkSegment([v1, v2]) {
         const triangle = [this.vertices[0], this.vertices[2], this.vertices[3]]
+
+        let minX, minY, maxX, maxY;
+        if (v1.x > v2.x) {
+            minX = v2.x;
+            maxX = v1.x;
+        }
+        else {
+            minX = v1.x;
+            maxX = v2.x;
+        }
+
+        if (v1.y > v2.y) {
+            minY = v2.y;
+            maxY = v1.y;
+        }
+        else {
+            minY = v1.y;
+            maxY = v2.y;
+        }
+
+        if (minX > this.max.x) return;
+        if (minY > this.max.y) return;
+        if (this.min.x > maxX) return;
+        if (this.min.y > maxY) return;
 
         for (let i = 0; i < 3; i++) {
             const t1 = triangle.at(i - 1)
@@ -208,4 +260,117 @@ export class Player {
         }
         return false
     }
-} 
+
+    checkFinished(finish) {
+        return this.checkSegment(finish)
+    }
+
+    doCollisions(vertices) {
+        for (let x = 0; x < 10; x++) {
+            const collisions = this.checkCollisions(vertices)
+            if (collisions.length == 0) break;
+            this.resolveCollisions(collisions, true)
+        }
+    }
+
+    checkCollisions(vertices) {
+        const intersections = []
+
+        for (let i = 0; i < vertices.length - 1; i++) {
+            const v1 = vertices[i]
+            const v2 = vertices[i + 1]
+
+            let minX, minY, maxX, maxY;
+            if (v1.x > v2.x) {
+                minX = v2.x;
+                maxX = v1.x;
+            }
+            else {
+                minX = v1.x;
+                maxX = v2.x;
+            }
+
+            if (v1.y > v2.y) {
+                minY = v2.y;
+                maxY = v1.y;
+            }
+            else {
+                minY = v1.y;
+                maxY = v2.y;
+            }
+
+            if (minX > this.max.x) continue;
+            if (minY > this.max.y) continue;
+            if (this.min.x > maxX) continue;
+            if (this.min.y > maxY) continue;
+
+            const intersection = this.checkSegment([v1, v2])
+
+            if (!intersection) continue;
+
+            intersections.push({A: v1, B: v2, intersection})
+        }
+
+        return intersections;
+    }
+
+    resolveCollisions(intersections) {
+        let best;
+        let bestDot = Infinity;
+
+        for (let {A, B} of intersections) {
+            const segment = Vector.subtract2(B, A)
+
+            const normal = Vector.normal(segment)
+
+            Vector.unit(normal)
+
+            const dot = Vector.dot(normal, this.velocity)
+
+            if (dot < bestDot) {
+                best = normal;
+                bestDot = dot;
+            }
+        }
+
+        if (!best) return;
+
+        this.#move(Vector.mult2(best, 0.5))
+
+        if (bestDot < 0) {
+            Vector.mult(best, -bestDot)
+
+            this.addVelocity(best)
+        }
+    }
+
+    resolveCollisionsOld(intersections, correctPos = false) {
+        for (let {A, B, intersection} of intersections) {
+            const segment = Vector.subtract2(B, A)
+
+            Vector.unit(segment)
+
+            const normal = Vector.normal(segment)
+            //As segment was already a unit vector, normal will be as well
+
+            // Correct position to prevent jittering
+            if (correctPos) {
+                const shift = Vector.mult2(normal, 0.5)
+
+                this.#move(shift)
+            }
+
+            if (Vector.dot(normal, this.velocity) > 0) {
+                Vector.mult(normal, -1)
+            }
+
+            const dot = Vector.dot(normal, this.velocity)
+
+            if (dot < 0) {
+                const addedVel = Vector.mult2(normal, -dot)
+
+                this.addVelocity(addedVel)
+            }
+        }
+    }
+}

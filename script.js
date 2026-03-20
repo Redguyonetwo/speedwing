@@ -31,14 +31,36 @@ let hasFinished = false;
 player.goTo(Level1.startPos)
 player.setRot(Level1.startRot)
 
+let started = false;
+
+let time = 0;
+
+let bestTime = Infinity;
+
+let isNewRecord = false;
+
+function isInput(key) {
+    return key == 'w' || key == 'a' || key == 's' || key == 'd'
+}
+
 Input.onKeyDown((key) => {
-    if (key != 'r') return;
+    if (key != 'r') {
+        if (!started && isInput(key)) {
+            started = true;
+            time = 0;
+        }
+        //else console.log(key)
+        return;
+    }
     player.velocity.x = 0;
     player.velocity.y = 0;
     player.goTo(Level1.startPos)
     player.setRot(Level1.startRot)
     hasFinished = false
+    started = false
+    isNewRecord = false
     player.fillColour = 'blue'
+    time = 0
 }, true)
 
 function clear() {
@@ -49,6 +71,10 @@ function clear() {
 function simulate(dt) {
     let addedSpeed = 0;
     let addedRotation = 0;
+
+    if (started) {
+        time += dt
+    }
 
     if (!hasFinished) {
         if (Input.keys.w) addedSpeed ++
@@ -65,6 +91,8 @@ function simulate(dt) {
 
     if (hasFinished) return;
 
+    player.doCollisions(Level1.vertices)
+
     const intersection = player.checkFinished(Level1.finish)
 
     if (intersection) {
@@ -75,6 +103,12 @@ function simulate(dt) {
         ctx.fillStyle = 'red'
         ctx.fill()
         hasFinished = true
+        started = false
+        if (time < bestTime) {
+            bestTime = Number(time.toFixed(3))
+            isNewRecord = true
+            console.log('New Record!')
+        }
     }
 }
 
@@ -120,14 +154,12 @@ function render() {
     player.render(ctx)
     ctx.restore()
 
-    return;
-
     ctx.save()
     ctx.scale(1, -1)
     ctx.translate(0, -innerHeight)
     ctx.fillStyle = 'white'
-    ctx.fillText(player.velocity.x.toPrecision(3) + ',' + player.velocity.y.toPrecision(3), 100, 600)
-    ctx.fillText(Vector.magnitude(player.velocity).toPrecision(4), 100, 500)
+    ctx.fillText('Time: ' + time.toFixed(3) + (isNewRecord ? '(New Record!)' : ''), 100, 500)
+    if (bestTime < Infinity) ctx.fillText('Best Time: ' + bestTime, 100, 600)
     ctx.restore()
 }
 

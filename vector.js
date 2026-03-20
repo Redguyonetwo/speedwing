@@ -100,6 +100,12 @@ class VectorLib {
     setMagnitude(v, mag) {
         this.mult(v, mag / this.magnitude(v))
     }
+
+    distance(v1, v2) {
+        const dx = v1.x - v2.x;
+        const dy = v1.y - v2.y;
+        return Math.hypot(dx, dy)
+    }
 }
 
 export const Vector = new VectorLib()

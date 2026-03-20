@@ -18,14 +18,12 @@ export function getIntersection(a1, a2, b1, b2) {
     const denominator = (h - f) * (c - a) - (g - e) * (d - b)
 
     if (denominator == 0) {
-        console.log('AAAAAAAAAAAAAA DIVIDE BY 0????')
         return;
     }
 
     const t = numerator / denominator
 
     if (t < 0 || t > 1) {
-        console.log('Outside bounds!')
         return;
     }
 
@@ -43,8 +41,8 @@ export function lerp2D(A, B, t) {
 }
 
 export function projectPointToLine(p, s1, s2) {
-    const AB = Vector.subtract(s2, s1)
-    const AP = Vector.subtract(p, s1)
+    const AB = Vector.subtract2(s2, s1)
+    const AP = Vector.subtract2(p, s1)
 
     Vector.unit(AB)
     Vector.unit(AP)
@@ -54,4 +52,18 @@ export function projectPointToLine(p, s1, s2) {
     const point = lerp2D(s1, s2, t)
 
     return {t, point}
+}
+
+export function pointToLineDistance(p, s1, s2) {
+    const { t, point } = projectPointToLine(p, s1, s2)
+
+    if (0 > t || 1 < t) {
+        const dA = Vector.distance(p, s1)
+        const dB = Vector.distance(p, s2)
+
+        if (dA < dB) return dA;
+        else return dB;
+    }
+
+    return Vector.distance(p, point)
 }
